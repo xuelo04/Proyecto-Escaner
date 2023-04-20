@@ -15,9 +15,9 @@
 const int stepsPerRevolution = 100;
 Stepper myStepper(stepsPerRevolution, 5,2,3,4);  
 bool ir_inicio = 1, ir_intermedio, ir_final, estado_pavance, estado_pretroceso, estado_selector;     
-int etapa, etapa_anterior, velocidad = 100, distance, posicion_carro = 0, posicion_objeto;  
+int etapa, etapa_anterior, velocidad = 100, distance, posicion_carro = 0, posicion_objeto, posicion_objeto_anterior = 0;  
 Ultrasonic us_sensor1(11, 12);
-MyDelay timer1(1000);
+MyDelay timer1(5000);
 
 void setup() {
     // Declaración de los pines del 6 al 10 y el 13 como entradas
@@ -61,25 +61,27 @@ void loop() {
         posicion_objeto = map(distance, 10, 35, 0, 11176);
         /* Mientras el carro esté más avanzado 
         que el objeto, el carro retrocede. */
-        while(posicion_carro >= posicion_objeto){
-            myStepper.step(1);  
-            posicion_carro--;
-            lecturas();
-            grafcet();
-            posicion_objeto = map(distance, 10, 35, 0, 11176);
-            // Volver al modo manual inmediatamente después de conmutar el selector.
-            if(estado_selector == 0) break;
-        }
-        /* Mientras que el carro esté más atrasado
-        que el objeto, el carro avanza. */
-        while(posicion_carro <= posicion_objeto){
-            myStepper.step(-1);
-            posicion_carro++;
-            lecturas();
-            grafcet();
-            posicion_objeto = map(distance, 10, 35, 0, 11176);
-            // Volver al modo manual inmediatamente después de conmutar el selector.
-            if(estado_selector == 0) break;
+        if(posicion_carro >= posicion_objeto + 1000 || posicion_carro <= posicion_objeto - 1000){
+            while(posicion_carro >= posicion_objeto){
+                myStepper.step(1);  
+                posicion_carro--;
+                lecturas();
+                grafcet();
+                posicion_objeto = map(distance, 10, 35, 0, 11176);
+                // Volver al modo manual inmediatamente después de conmutar el selector.
+                if(estado_selector == 0 || ir_inicio == 0) break;
+            }
+            /* Mientras que el carro esté más atrasado
+            que el objeto, el carro avanza. */
+            while(posicion_carro <= posicion_objeto){
+                myStepper.step(-1);
+                posicion_carro++;
+                lecturas();
+                grafcet();
+                posicion_objeto = map(distance, 10, 35, 0, 11176);
+                // Volver al modo manual inmediatamente después de conmutar el selector.
+                if(estado_selector == 0 || ir_final == 0) break;
+            }
         }
     }
     myStepper.setSpeed(velocidad); 
@@ -127,5 +129,5 @@ void lecturas(){
     ir_final = digitalRead(IR_FINAL);
     estado_pavance = digitalRead(ESTADO_PAVANCE);
     estado_pretroceso = digitalRead(ESTADO_PRETROCESO);
-    if(timer1.update()) distance = us_sensor1.read();
+    distance = us_sensor1.read();
 }
